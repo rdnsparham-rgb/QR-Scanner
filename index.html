@@ -2,10 +2,10 @@
 <html lang="fa">
 <head>
 <meta charset="UTF-8">
-<title>پنل مدیریت فایل Parham ⚙️</title>
+<title>پنل مدیریت فایل GitHub</title>
 <style>
 body{
-  background:#0d1117;
+  background:linear-gradient(135deg,#0d1117,#161b22);
   color:white;
   font-family:sans-serif;
   display:flex;
@@ -18,26 +18,26 @@ input,textarea{
   width:300px;
   margin:5px;
   padding:10px;
-  background:#161b22;
-  color:white;
-  border:none;
   border-radius:8px;
+  border:none;
+  background:#21262d;
+  color:white;
 }
 button{
   padding:10px 25px;
   margin-top:10px;
-  background:#238636;
-  color:white;
   border:none;
   border-radius:8px;
+  background:#238636;
+  color:white;
   cursor:pointer;
 }
 button:hover{background:#2ea043;}
-#output{margin-top:20px;white-space:pre-wrap;}
+#output{margin-top:15px;white-space:pre-wrap;}
 </style>
 </head>
 <body>
-<h2>🧩 کنترل‌پنل ساخت فایل در GitHub</h2>
+<h2>📂 وب‌پنل ساخت فایل در GitHub</h2>
 <input id="filename" placeholder="نام فایل (مثلاً info.txt)">
 <textarea id="content" rows="4" placeholder="محتوای فایل"></textarea>
 <button onclick="createFile()">ساخت فایل 🚀</button>
@@ -48,31 +48,32 @@ async function createFile(){
   const filename=document.getElementById('filename').value.trim();
   const content=document.getElementById('content').value.trim();
   const output=document.getElementById('output');
-  if(!filename||!content){
+  if(!filename || !content){
     output.innerText="⚠️ لطفاً نام و محتوا را وارد کنید.";
     return;
   }
-  output.innerText="⏳ در حال ارسال به GitHub...";
-  const repo="rdnsparham-rgb/V1";
-  const url=`https://api.github.com/repos/${repo}/issues`;
 
-  const res=await fetch(url,{
+  output.innerText="⏳ در حال ارسال درخواست به GitHub Actions...";
+  
+  const workflowURL="https://api.github.com/repos/rdnsparham-rgb/V1/actions/workflows/cpanel-like.yml/dispatches";
+
+  const res=await fetch(workflowURL,{
     method:"POST",
     headers:{
-      "Accept":"application/vnd.github+json"
+      "Accept":"application/vnd.github+json",
+      "Authorization":"Bearer ghp_dummy" // فقط placeholder، توکن واقعی داخل workflow استفاده می‌شود
     },
     body:JSON.stringify({
-      title:`create:${filename}`,
-      body:content
+      ref:"main",
+      inputs:{filename, content}
     })
   });
 
   if(res.ok){
-    const data=await res.json();
-    output.innerHTML=`✅ درخواست ارسال شد!<br>🧩 <a href="${data.html_url}" target="_blank" style="color:#58a6ff">مشاهده در GitHub</a>`;
+    output.innerHTML="✅ درخواست ارسال شد!<br>چند ثانیه بعد فایل ساخته خواهد شد و می‌توانید لینک را از Actions مشاهده کنید.";
   }else{
     const data=await res.json();
-    output.innerText=`❌ خطا در ایجاد درخواست:\n${data.message}`;
+    output.innerText=`❌ خطا: ${data.message}`;
   }
 }
 </script>
