@@ -1,37 +1,37 @@
-name: Create Random File via Web Panel
+name: CPanel-like File Creator
 
 on:
-  workflow_dispatch:
-    inputs:
-      filename:
-        description: "نام فایل برای ساخت"
-        required: true
-      content:
-        description: "محتوای فایل"
-        required: true
+  issues:
+    types: [opened]
 
 jobs:
-  create_file:
+  create-file:
+    if: startsWith(github.event.issue.title, 'create:')
     runs-on: ubuntu-latest
+
     steps:
       - name: Generate Random Folder
         id: random
-        run: echo "RANDOM_DIR=$(cat /dev/urandom | tr -dc A-Z | head -c 7)" >> $GITHUB_ENV
+        run: echo "RAND=$(cat /dev/urandom | tr -dc A-Z | head -c 7)" >> $GITHUB_ENV
 
-      - name: Create New File
-        env:
-          GITHUB_TOKEN: ${{ secrets.MY_TOKEN }}
-          REPO: ${{ github.repository }}
+      - name: Clone Repository
+        uses: actions/checkout@v4
+
+      - name: Create File
         run: |
-          mkdir -p V1/$RANDOM_DIR
-          echo "${{ github.event.inputs.content }}" > V1/$RANDOM_DIR/${{ github.event.inputs.filename }}
-          git config --global user.name "GitHub Action"
-          git config --global user.email "actions@github.com"
+          FILE_NAME=$(echo "${{ github.event.issue.title }}" | sed 's/create://g')
+          mkdir -p V1/$RAND
+          echo "${{ github.event.issue.body }}" > V1/$RAND/$FILE_NAME
+          git config --global user.name "CPanel Bot"
+          git config --global user.email "bot@github.com"
           git add .
-          git commit -m "🧩 Created ${{ github.event.inputs.filename }} in $RANDOM_DIR"
-          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${REPO}.git" HEAD:main
+          git commit -m "🧩 Created file $FILE_NAME in $RAND"
+          git push
 
-      - name: Output Link
+      - name: Comment Back with Link
+        env:
+          GH_TOKEN: ${{ secrets.MY_TOKEN }}
         run: |
-          echo "✅ فایل ساخته شد در:"
-          echo "https://${{ github.repository_owner }}.github.io/V1/${RANDOM_DIR}/${{ github.event.inputs.filename }}"
+          FILE_NAME=$(echo "${{ github.event.issue.title }}" | sed 's/create://g')
+          COMMENT="✅ فایل شما ساخته شد!\n🔗 لینک فایل:\nhttps://${{ github.repository_owner }}.github.io/V1/$RAND/$FILE_NAME"
+          gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments -f body="$COMMENT"
