@@ -1,0 +1,85 @@
+name: GitHub cPanel Lite
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'عملیات: create, edit, delete'
+        required: true
+        default: 'create'
+      files_json:
+        description: 'JSON فایل‌ها: [{"filename":"index.html","content":"<h1>سلام</h1>"}]'
+        required: true
+        default: '[{"filename":"index.html","content":"<h1>سلام از parham</h1>"}]'
+      target_branch:
+        description: 'شاخه هدف برای commit'
+        required: false
+        default: 'main'
+
+jobs:
+  manage-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare folder & variables
+        shell: bash
+        run: |
+          RAND=$(openssl rand -hex 4)
+          FOLDER="V1/$RAND"
+          echo "FOLDER=$FOLDER" >> $GITHUB_ENV
+          BRANCH="${{ github.event.inputs.target_branch || 'main' }}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          echo "ACTION=${{ github.event.inputs.action }}" >> $GITHUB_ENV
+          echo "Files folder: $FOLDER on branch $BRANCH, action: $ACTION"
+
+      - name: Manage files with Node.js
+        env:
+          FILES_JSON: ${{ github.event.inputs.files_json }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          echo "$FILES_JSON" > /tmp/files_payload.json
+          node -e "
+const fs = require('fs');
+const path = require('path');
+const files = JSON.parse(fs.readFileSync('/tmp/files_payload.json','utf8'));
+const folder = process.env.FOLDER;
+const action = process.env.ACTION;
+
+if(!fs.existsSync(folder) && action !== 'delete') fs.mkdirSync(folder,{recursive:true});
+
+for(const f of files){
+  const filePath = path.join(folder,f.filename);
+  if(action === 'create' || action === 'edit'){
+    const dir = path.dirname(filePath);
+    if(!fs.existsSync(dir)) fs.mkdirSync(dir,{recursive:true});
+    fs.writeFileSync(filePath,f.content,{encoding:'utf8'});
+    console.log('WROTE', filePath);
+  }
+  else if(action === 'delete' && fs.existsSync(filePath)){
+    fs.unlinkSync(filePath);
+    console.log('DELETED', filePath);
+  }
+}
+"
+
+      - name: Commit & push changes
+        env:
+          PUSH_TOKEN: ${{ secrets.MY_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "V1"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "GitHub cPanel Lite: $ACTION files"
+          REPO_URL="https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push "$REPO_URL" HEAD:${BRANCH}
+          echo "✅ فایل‌ها مدیریت شد. لینک روی GitHub Pages: https://rdnsparham-rgb.github.io/V1/${FOLDER}/"
