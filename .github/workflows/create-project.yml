@@ -1,0 +1,81 @@
+name: Create Project (on repository_dispatch)
+
+on:
+  repository_dispatch:
+    types: [create_project]
+
+jobs:
+  create_project:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config --global user.name "parham h (auto)"
+          git config --global user.email "no-reply@rdnsparham.local"
+
+      - name: Create project files (atomic)
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          BRANCH: ${{ github.event.client_payload.branch || 'main' }}
+          PREFIX: ${{ github.event.client_payload.prefix || 'V1' }}
+        run: |
+          echo "Preparing project from repository_dispatch payload..."
+          # read payload files (JSON) from client_payload
+          PAYLOAD="${{ toJson(github.event.client_payload) }}"
+          echo "payload: $PAYLOAD"
+
+          # create temp folder and write files based on payload
+          TIMESTAMP=$(date +%s)
+          FOLDER="${PREFIX}/${TIMESTAMP}"
+          mkdir -p "$FOLDER"
+
+          # client_payload.files is expected to be an array of objects {filename,content}
+          python3 - <<'PY'
+import os, json, sys
+p = os.environ.get('GITHUB_EVENT_PATH')
+# fallback: using github.event.client_payload via env (not always present in file)
+payload_env = os.environ.get('PAYLOAD')
+try:
+    data = json.loads(payload_env)
+except:
+    data = {}
+files = data.get('files', [])
+folder = os.environ.get('FOLDER')
+if not folder:
+    folder = 'V1/auto'
+for f in files:
+    name = f.get('filename','index.html')
+    content = f.get('content','')
+    path = os.path.join(folder, name)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write(content)
+print("WROTE", len(files), "files to", folder)
+PY
+
+          # show created files
+          ls -R "$FOLDER" || true
+
+      - name: Commit & push (use secret token)
+        env:
+          PUSH_TOKEN: ${{ secrets.MY_TOKEN }}
+          BRANCH: ${{ github.event.client_payload.branch || 'main' }}
+        run: |
+          # We assume the new files were created under $PREFIX/$TIMESTAMP
+          TIMESTAMP=$(date +%s)
+          FOLDER="${{ github.event.client_payload.prefix || 'V1' }}/${TIMESTAMP}"
+          # If python created another folder name, try to detect created folder
+          CREATED=$(ls -dV V1/* 2>/dev/null | tail -n1 || echo "$FOLDER")
+          echo "Using folder: $CREATED"
+
+          git add "$CREATED" || true
+          git commit -m "Create project $CREATED via repository_dispatch" || echo "Nothing to commit"
+          # push using token (avoid exposing token in logs)
+          REPO_URL="https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push "$REPO_URL" HEAD:${BRANCH}
