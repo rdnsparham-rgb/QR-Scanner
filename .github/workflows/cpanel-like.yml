@@ -1,0 +1,63 @@
+name: cpanel-like
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'نوع عملیات (create / edit / delete)'
+        required: true
+      files_json:
+        description: 'لیست فایل‌ها به صورت JSON [{"filename":"index.html","content":"<h1>hi</h1>"}]'
+        required: true
+      target_branch:
+        description: 'نام شاخه هدف (مثلاً main)'
+        required: true
+
+jobs:
+  manage_files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Parse JSON and Apply Changes
+        run: |
+          echo "🚀 شروع عملیات cPanel-like"
+          mkdir -p temp_changes
+          echo '${{ inputs.files_json }}' > temp_changes/files.json
+          cat temp_changes/files.json
+
+          FOLDER=$(cat /dev/urandom | tr -dc a-z0-9 | head -c 8)
+          echo "پوشه رندم: $FOLDER"
+
+          mkdir -p "$FOLDER"
+
+          echo '${{ inputs.files_json }}' | jq -c '.[]' | while read file; do
+            NAME=$(echo $file | jq -r '.filename')
+            CONTENT=$(echo $file | jq -r '.content')
+
+            if [ "${{ inputs.action }}" = "delete" ]; then
+              echo "🗑 حذف فایل: $NAME"
+              rm -f "$NAME"
+            else
+              echo "✏️ ایجاد/ویرایش فایل: $NAME"
+              echo "$CONTENT" > "$FOLDER/$NAME"
+            fi
+          done
+
+      - name: Commit & Push Changes
+        run: |
+          git config --global user.name "cpanel-bot"
+          git config --global user.email "cpanel-bot@example.com"
+
+          git add .
+          COMMIT_MSG="CPanel Action: ${{ inputs.action }}"
+          git commit -m "$COMMIT_MSG" || echo "بدون تغییر برای commit"
+          git push origin ${{ inputs.target_branch }}
+
+      - name: Display File URLs
+        run: |
+          echo "✅ فایل‌ها با موفقیت مدیریت شدند!"
+          echo "🔗 لینک GitHub Pages برای مشاهده:"
+          echo "https://rdnsparham-rgb.github.io/V1/${FOLDER}/"
