@@ -1,0 +1,69 @@
+name: Create Random Folder & Files (Secure)
+
+on:
+  workflow_dispatch:
+    inputs:
+      files_json:
+        description: 'JSON فایل‌ها: [{"filename":"index.html","content":"<h1>سلام</h1>"}]'
+        required: true
+        default: '[{"filename":"index.html","content":"<h1>سلام از parham</h1>"}]'
+      target_branch:
+        description: 'شاخه هدف برای commit (مثال: main)'
+        required: false
+        default: 'main'
+
+jobs:
+  create-folder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare folder
+        shell: bash
+        run: |
+          RAND=$(openssl rand -hex 4)
+          FOLDER="V1/$RAND"
+          echo "FOLDER=$FOLDER" >> $GITHUB_ENV
+          BRANCH="${{ github.event.inputs.target_branch || 'main' }}"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+          echo "Folder to create: $FOLDER on branch $BRANCH"
+
+      - name: Write files from JSON
+        env:
+          FILES_JSON: ${{ github.event.inputs.files_json }}
+        run: |
+          echo "$FILES_JSON" > /tmp/files_payload.json
+          node -e "
+const fs = require('fs');
+const path = require('path');
+const files = JSON.parse(fs.readFileSync('/tmp/files_payload.json','utf8'));
+const folder = process.env.FOLDER;
+if(!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true });
+for(const f of files){
+  const filePath = path.join(folder,f.filename);
+  const dir = path.dirname(filePath);
+  if(!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(filePath,f.content,{encoding:'utf8'});
+  console.log('Wrote', filePath);
+}
+"
+
+      - name: Commit & push using secrets.MY_TOKEN
+        env:
+          PUSH_TOKEN: ${{ secrets.MY_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${FOLDER}"
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Create folder $FOLDER via workflow_dispatch"
+          REPO_URL="https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git"
+          git push "$REPO_URL" HEAD:${BRANCH}
