@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>GitHub cPanel Lite</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#f3f6fb;}
+input,textarea,button,select{width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;box-sizing:border-box;}
+button{background:#2b6ef6;color:#fff;border:none;cursor:pointer;}
+h2{margin-bottom:10px;}
+#messages{background:#eef;padding:10px;border-radius:6px;min-height:30px;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<h2>GitHub cPanel Lite</h2>
+
+<label>عملیات</label>
+<select id="action">
+  <option value="create">ساخت فایل جدید</option>
+  <option value="edit">ویرایش فایل موجود</option>
+  <option value="delete">حذف فایل</option>
+</select>
+
+<label>نام فایل (مثلاً index.html)</label>
+<input id="filename" placeholder="نام فایل">
+
+<label>محتوای فایل (برای ایجاد یا ویرایش)</label>
+<textarea id="content" rows="6"></textarea>
+
+<label>شاخه هدف (مثلاً main)</label>
+<input id="branch" placeholder="main">
+
+<button id="submitBtn">اجرای عملیات</button>
+
+<div id="messages"></div>
+
+<script>
+const el = id => document.getElementById(id);
+const showMsg = msg => el('messages').textContent = msg;
+
+el('submitBtn').addEventListener('click', ()=>{
+    const action = el('action').value;
+    const filename = el('filename').value.trim();
+    const content = el('content').value;
+    const branch = el('branch').value.trim() || 'main';
+    
+    if(!filename){ showMsg('لطفا نام فایل را وارد کنید'); return; }
+    
+    // آماده‌سازی JSON ورودی برای workflow
+    const files_json = JSON.stringify([{filename, content}]);
+    
+    // نمایش پیام و لینک نمونه GitHub Pages
+    const randPlaceholder = '<RAND>'; // این جایگزین پوشه رندم واقعی خواهد شد
+    const githubPagesURL = `https://rdnsparham-rgb.github.io/V1/${randPlaceholder}/${filename}`;
+    
+    showMsg(
+`✅ درخواست شما آماده شد.
+عملیات: ${action}
+فایل: ${filename}
+شاخه: ${branch}
+
+JSON آماده برای workflow:
+${files_json}
+
+🔗 لینک نمونه GitHub Pages (بعد از اجرای workflow، RAND واقعی جایگزین می‌شود):
+${githubPagesURL}`
+    );
+});
+</script>
+</body>
+</html>
