@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>Trigger GitHub Workflow</title>
+<style>
+body{font-family:sans-serif;padding:20px;background:#f3f6fb;}
+input,textarea,button{width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ddd;box-sizing:border-box;}
+button{background:#2b6ef6;color:#fff;border:none;cursor:pointer;}
+</style>
+</head>
+<body>
+<h2>Trigger Workflow امن</h2>
+
+<label>Files JSON</label>
+<textarea id="files" rows="6">[{"filename":"index.html","content":"<h1>سلام از parham</h1>"}]</textarea>
+
+<label>Branch هدف (مثلاً main)</label>
+<input id="branch" placeholder="main">
+
+<button id="triggerBtn">اجرای Workflow</button>
+
+<pre id="out"></pre>
+
+<script>
+const el = id=>document.getElementById(id);
+const out = msg=>el('out').textContent=typeof msg==='string'?msg:JSON.stringify(msg,null,2);
+
+el('triggerBtn').addEventListener('click', async ()=>{
+  const files_json = el('files').value.trim();
+  const branch = el('branch').value.trim() || 'main';
+  
+  // این URL و درخواست فقط برای UI است، trigger واقعی توسط GitHub UI یا سرور امن انجام شود
+  out("این فرم فقط برای نمایش ورودی است. Trigger واقعی workflow را از GitHub Actions اجرا کنید.\n\nFiles JSON:\n"+files_json+"\nBranch:\n"+branch);
+});
+</script>
+</body>
+</html>
