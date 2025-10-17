@@ -4,78 +4,68 @@
 <meta charset="UTF-8">
 <title>پنل مدیریت فایل GitHub</title>
 <style>
-body{
-  background:linear-gradient(135deg,#0d1117,#161b22);
-  color:white;
-  font-family:sans-serif;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  height:100vh;
-}
-input,textarea{
-  width:300px;
-  margin:5px;
-  padding:10px;
-  border-radius:8px;
-  border:none;
-  background:#21262d;
-  color:white;
-}
-button{
-  padding:10px 25px;
-  margin-top:10px;
-  border:none;
-  border-radius:8px;
-  background:#238636;
-  color:white;
-  cursor:pointer;
-}
-button:hover{background:#2ea043;}
-#output{margin-top:15px;white-space:pre-wrap;}
+body{font-family:sans-serif;background:#f4f6f9;padding:30px;color:#111}
+.card{max-width:720px;margin:0 auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.06)}
+input,textarea,button{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ddd;box-sizing:border-box}
+button{background:#2563eb;color:#fff;border:none;cursor:pointer;padding:10px}
+.small{font-size:13px;color:#666}
+a.link{color:#2563eb}
 </style>
 </head>
 <body>
-<h2>📂 وب‌پنل ساخت فایل در GitHub</h2>
-<input id="filename" placeholder="نام فایل (مثلاً info.txt)">
-<textarea id="content" rows="4" placeholder="محتوای فایل"></textarea>
-<button onclick="createFile()">ساخت فایل 🚀</button>
-<div id="output"></div>
+<div class="card">
+  <h2>📂 وب‌پنل ساخت فایل در GitHub</h2>
+
+  <label>Filename</label>
+  <input id="filename" placeholder="index.html">
+
+  <label>Content</label>
+  <textarea id="content" rows="4">&lt;h1&gt;سلام از Parham&lt;/h1&gt;</textarea>
+
+  <button id="createBtn">ساخت فایل 🚀</button>
+
+  <h4>نتیجه</h4>
+  <pre id="out"></pre>
+</div>
 
 <script>
-async function createFile(){
-  const filename=document.getElementById('filename').value.trim();
-  const content=document.getElementById('content').value.trim();
-  const output=document.getElementById('output');
+const out = document.getElementById('out');
+
+document.getElementById('createBtn').addEventListener('click', async () => {
+  const filename = document.getElementById('filename').value.trim();
+  const content = document.getElementById('content').value;
+
   if(!filename || !content){
-    output.innerText="⚠️ لطفاً نام و محتوا را وارد کنید.";
+    out.textContent = "⚠️ لطفاً نام فایل و محتوا را وارد کنید.";
     return;
   }
 
-  output.innerText="⏳ در حال ارسال درخواست به GitHub Actions...";
-  
-  const workflowURL="https://api.github.com/repos/rdnsparham-rgb/V1/actions/workflows/cpanel-like.yml/dispatches";
+  out.textContent = "⏳ درخواست به GitHub Actions ارسال شد...";
 
-  const res=await fetch(workflowURL,{
-    method:"POST",
-    headers:{
-      "Accept":"application/vnd.github+json",
-      "Authorization":"Bearer ghp_dummy" // فقط placeholder، توکن واقعی داخل workflow استفاده می‌شود
-    },
-    body:JSON.stringify({
-      ref:"main",
-      inputs:{filename, content}
-    })
-  });
+  try {
+    const workflowURL = "https://api.github.com/repos/rdnsparham-rgb/V1/actions/workflows/cpanel-like.yml/dispatches";
+    const res = await fetch(workflowURL, {
+      method: "POST",
+      headers: {
+        "Accept":"application/vnd.github+json",
+        "Authorization":"Bearer ghp_dummy" // placeholder: توکن واقعی داخل workflow هست
+      },
+      body: JSON.stringify({
+        ref: "main",
+        inputs: { filename, content }
+      })
+    });
 
-  if(res.ok){
-    output.innerHTML="✅ درخواست ارسال شد!<br>چند ثانیه بعد فایل ساخته خواهد شد و می‌توانید لینک را از Actions مشاهده کنید.";
-  }else{
-    const data=await res.json();
-    output.innerText=`❌ خطا: ${data.message}`;
+    if(res.ok){
+      out.textContent = "✅ درخواست ارسال شد!\nفایل در پوشه رندم ساخته خواهد شد.\nلینک GitHub Pages بعد از ساخته شدن: https://rdnsparham-rgb.github.io/V1/<RAND>/<filename>";
+    } else {
+      const data = await res.json();
+      out.textContent = `❌ خطا: ${data.message}`;
+    }
+  } catch(e){
+    out.textContent = "❌ خطا در ارتباط با GitHub: " + e.message;
   }
-}
+});
 </script>
 </body>
 </html>
