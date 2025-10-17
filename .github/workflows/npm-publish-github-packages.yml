@@ -1,0 +1,50 @@
+name: Create Random Folder
+
+# قابل trigger با فرم یا دکمه در GitHub
+on:
+  workflow_dispatch:
+    inputs:
+      folder_prefix:
+        description: 'پیشوند پوشه'
+        required: true
+        default: 'V1'
+      files_json:
+        description: 'لیست فایل‌ها JSON [{ "filename":"index.html", "content":"سلام" }]'
+        required: true
+        default: '[{"filename":"index.html","content":"<h1>سلام</h1>"}]'
+
+jobs:
+  create-folder:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # برای push و commit
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Create random folder and files
+        run: |
+          echo "شروع ساخت پوشه رندم ..."
+          PREFIX="${{ github.event.inputs.folder_prefix }}"
+          RAND=$(openssl rand -hex 4)
+          FOLDER="$PREFIX/$RAND"
+          mkdir -p "$FOLDER"
+          echo "${{ github.event.inputs.files_json }}" > temp_files.json
+          node -e "
+          const fs = require('fs');
+          const files = JSON.parse(fs.readFileSync('temp_files.json'));
+          const folder = '$FOLDER';
+          for(const f of files){
+            fs.writeFileSync(folder+'/'+f.filename,f.content);
+          }
+          "
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add "$FOLDER"
+          git commit -m "Create folder $FOLDER via workflow"
+          git push
