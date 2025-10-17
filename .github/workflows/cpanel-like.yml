@@ -1,37 +1,41 @@
 name: CPanel-like File Creator
 
 on:
-  issues:
-    types: [opened]
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: "نام فایل برای ساخت"
+        required: true
+      content:
+        description: "محتوای فایل"
+        required: true
 
 jobs:
   create-file:
-    if: startsWith(github.event.issue.title, 'create:')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Generate Random Folder
         id: random
         run: echo "RAND=$(cat /dev/urandom | tr -dc A-Z | head -c 7)" >> $GITHUB_ENV
 
-      - name: Clone Repository
-        uses: actions/checkout@v4
-
       - name: Create File
         run: |
-          FILE_NAME=$(echo "${{ github.event.issue.title }}" | sed 's/create://g')
           mkdir -p V1/$RAND
-          echo "${{ github.event.issue.body }}" > V1/$RAND/$FILE_NAME
-          git config --global user.name "CPanel Bot"
-          git config --global user.email "bot@github.com"
+          echo "${{ github.event.inputs.content }}" > V1/$RAND/${{ github.event.inputs.filename }}
+          git config --global user.name "GitHub Action"
+          git config --global user.email "actions@github.com"
           git add .
-          git commit -m "🧩 Created file $FILE_NAME in $RAND"
-          git push
+          git commit -m "🧩 Create ${{ github.event.inputs.filename }} in $RAND"
+          git push "https://x-access-token:${{ secrets.MY_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
 
-      - name: Comment Back with Link
-        env:
-          GH_TOKEN: ${{ secrets.MY_TOKEN }}
+      - name: Output Link
         run: |
-          FILE_NAME=$(echo "${{ github.event.issue.title }}" | sed 's/create://g')
-          COMMENT="✅ فایل شما ساخته شد!\n🔗 لینک فایل:\nhttps://${{ github.repository_owner }}.github.io/V1/$RAND/$FILE_NAME"
-          gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments -f body="$COMMENT"
+          echo "LINK=https://${{ github.repository_owner }}.github.io/V1/$RAND/${{ github.event.inputs.filename }}" >> $GITHUB_ENV
+        id: output
+
+      - name: Print link
+        run: echo "✅ فایل ساخته شد: $LINK"
