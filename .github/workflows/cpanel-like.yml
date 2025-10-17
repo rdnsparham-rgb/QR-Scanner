@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       filename:
-        description: "نام فایل برای ساخت"
+        description: "نام فایل"
         required: true
       content:
         description: "محتوای فایل"
@@ -13,26 +13,26 @@ on:
 jobs:
   create-file:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Generate random folder name
-        id: random
+      - name: Generate random folder
+        id: rand
         run: echo "RAND=$(cat /dev/urandom | tr -dc A-Z | head -c 7)" >> $GITHUB_ENV
 
       - name: Create file in random folder
         run: |
           mkdir -p V1/$RAND
           echo "${{ github.event.inputs.content }}" > V1/$RAND/${{ github.event.inputs.filename }}
-          git config --global user.name "GitHub Action"
-          git config --global user.email "actions@github.com"
+          git config user.name "GitHub Action"
+          git config user.email "actions@github.com"
           git add .
-          git commit -m "Create ${{ github.event.inputs.filename }} in $RAND"
+          git commit -m "Add ${{ github.event.inputs.filename }} in $RAND"
           git push "https://x-access-token:${{ secrets.MY_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
 
-      - name: Output URL
+      - name: Show GitHub Pages URL
         run: |
-          echo "LINK=https://${{ github.repository_owner }}.github.io/${{ github.repository }}/V1/$RAND/${{ github.event.inputs.filename }}" >> $GITHUB_ENV
+          LINK="https://${{ github.repository_owner }}.github.io/${{ github.repository }}/V1/$RAND/${{ github.event.inputs.filename }}"
           echo "✅ فایل ساخته شد: $LINK"
+          echo "LINK=$LINK" >> $GITHUB_ENV
