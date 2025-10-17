@@ -2,68 +2,53 @@
 <html lang="fa">
 <head>
 <meta charset="UTF-8">
-<title>پنل مدیریت فایل GitHub</title>
-<style>
-body{font-family:sans-serif;background:#f4f6f9;padding:30px;color:#111}
-.card{max-width:720px;margin:0 auto;background:#fff;padding:18px;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,0.06)}
-input,textarea,button{width:100%;padding:10px;margin:8px 0;border-radius:6px;border:1px solid #ddd;box-sizing:border-box}
-button{background:#2563eb;color:#fff;border:none;cursor:pointer;padding:10px}
-.small{font-size:13px;color:#666}
-a.link{color:#2563eb}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>پنل CPanel-like GitHub</title>
 </head>
 <body>
-<div class="card">
-  <h2>📂 وب‌پنل ساخت فایل در GitHub</h2>
+<h1>پنل ساخت فایل GitHub</h1>
+<form id="createForm">
+  <label>نام فایل:</label>
+  <input type="text" name="filename" placeholder="مثلاً Wke.md" required><br><br>
+  <label>محتوا:</label><br>
+  <textarea name="content" placeholder="محتوای فایل..." rows="6" cols="40"></textarea><br><br>
+  <button type="submit">ساخت فایل</button>
+</form>
 
-  <label>Filename</label>
-  <input id="filename" placeholder="index.html">
-
-  <label>Content</label>
-  <textarea id="content" rows="4">&lt;h1&gt;سلام از Parham&lt;/h1&gt;</textarea>
-
-  <button id="createBtn">ساخت فایل 🚀</button>
-
-  <h4>نتیجه</h4>
-  <pre id="out"></pre>
-</div>
+<div id="result" style="margin-top:20px;color:green;"></div>
 
 <script>
-const out = document.getElementById('out');
-
-document.getElementById('createBtn').addEventListener('click', async () => {
-  const filename = document.getElementById('filename').value.trim();
-  const content = document.getElementById('content').value;
-
-  if(!filename || !content){
-    out.textContent = "⚠️ لطفاً نام فایل و محتوا را وارد کنید.";
-    return;
-  }
-
-  out.textContent = "⏳ درخواست به GitHub Actions ارسال شد...";
+const form = document.getElementById('createForm');
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const filename = form.filename.value;
+  const content = form.content.value;
 
   try {
-    const workflowURL = "https://api.github.com/repos/rdnsparham-rgb/V1/actions/workflows/cpanel-like.yml/dispatches";
-    const res = await fetch(workflowURL, {
-      method: "POST",
+    // Trigger GitHub Actions workflow dispatch API
+    const repo = "rdnsparham-rgb/V1"; // ریپو خودت
+    const url = `https://api.github.com/repos/${repo}/actions/workflows/cpanel-like.yml/dispatches`;
+    
+    const res = await fetch(url, {
+      method: 'POST',
       headers: {
-        "Accept":"application/vnd.github+json",
-        "Authorization":"Bearer ghp_dummy" // placeholder: توکن واقعی داخل workflow هست
+        'Accept': 'application/vnd.github+json',
+        'Authorization': 'token YOUR_PAT_HERE' // ← این را در مرورگر قرار نده، فقط برای تست
       },
       body: JSON.stringify({
-        ref: "main",
+        ref: 'main',
         inputs: { filename, content }
       })
     });
 
-    if(res.ok){
-      out.textContent = "✅ درخواست ارسال شد!\nفایل در پوشه رندم ساخته خواهد شد.\nلینک GitHub Pages بعد از ساخته شدن: https://rdnsparham-rgb.github.io/V1/<RAND>/<filename>";
+    if(res.ok) {
+      document.getElementById('result').innerText = "✅ فایل با موفقیت ساخته شد. بررسی workflow در Actions.";
     } else {
       const data = await res.json();
-      out.textContent = `❌ خطا: ${data.message}`;
+      document.getElementById('result').innerText = "❌ خطا: " + JSON.stringify(data);
     }
-  } catch(e){
-    out.textContent = "❌ خطا در ارتباط با GitHub: " + e.message;
+  } catch(err) {
+    document.getElementById('result').innerText = "❌ خطای جاوااسکریپت: " + err;
   }
 });
 </script>
