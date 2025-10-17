@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>پنل کنترل ساخت فایل روی GitHub</title>
+<style>
+  body { font-family: sans-serif; background: #f0f0f5; margin:0; padding:0; display:flex; justify-content:center; align-items:flex-start; min-height:100vh; }
+  .container { background:white; padding:20px; border-radius:10px; box-shadow:0 4px 15px rgba(0,0,0,0.1); margin-top:30px; width:360px; }
+  input, textarea, select, button { width:100%; margin:6px 0; padding:8px; border-radius:5px; border:1px solid #ccc; }
+  button { background:#667eea; color:white; border:none; cursor:pointer; }
+  button:hover { background:#556cd6; }
+  label { font-weight:bold; margin-top:8px; display:block; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h3>پنل کنترل ساخت فایل</h3>
+
+  <label>نام مخزن</label>
+  <input type="text" id="repo" placeholder="مثال: V1" value="V1">
+
+  <label>نام کاربری GitHub</label>
+  <input type="text" id="owner" placeholder="مثال: rdnsparham-rgb" value="rdnsparham-rgb">
+
+  <label>نام پوشه (prefix)</label>
+  <input type="text" id="prefix" placeholder="مثال: V1" value="V1">
+
+  <label>فایل‌ها (نام و محتوا)</label>
+  <textarea id="files" rows="8" placeholder="مثال: index.html=سلام دنیا\nabout.html=About content">index.html=&lt;h1&gt;سلام از rdnsparham-rgb!&lt;/h1&gt;</textarea>
+
+  <button id="createBtn">ساخت فایل‌ها روی GitHub</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
