@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<title>مدیریت فایل GitHub (Cpanel) ⚙️</title>
+<style>
+body{
+  background:linear-gradient(135deg,#0d1117,#161b22);
+  color:white;
+  font-family:'Vazirmatn',sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+}
+input,textarea{
+  width:300px;
+  padding:10px;
+  margin:5px;
+  border-radius:8px;
+  border:none;
+  background:#21262d;
+  color:white;
+}
+button{
+  padding:10px 25px;
+  border:none;
+  border-radius:8px;
+  background:#238636;
+  color:white;
+  cursor:pointer;
+  margin-top:10px;
+}
+button:hover{background:#2ea043;}
+#output{margin-top:15px;white-space:pre-wrap;}
+</style>
+</head>
+<body>
+<h2>📂 وب‌پنل ساخت فایل در GitHub</h2>
+<input id="filename" placeholder="نام فایل (مثلاً info.txt)">
+<textarea id="content" rows="4" placeholder="محتوای فایل"></textarea>
+<button onclick="createFile()">ساخت فایل 🚀</button>
+<div id="output"></div>
+
+<script>
+async function createFile(){
+  const filename=document.getElementById("filename").value.trim();
+  const content=document.getElementById("content").value.trim();
+  const output=document.getElementById("output");
+  if(!filename||!content){
+    output.innerText="⚠️ لطفاً نام و محتوای فایل را وارد کنید.";
+    return;
+  }
+
+  output.innerText="⏳ در حال ساخت فایل...";
+  const workflowURL="https://api.github.com/repos/rdnsparham-rgb/V1/actions/workflows/cpanel-like.yml/dispatches";
+
+  const res=await fetch(workflowURL,{
+    method:"POST",
+    headers:{
+      "Accept":"application/vnd.github+json",
+      "Authorization":"Bearer ghp_dummy", // اینجا توکن لازم نیست چون از Secret گرفته میشه
+    },
+    body:JSON.stringify({
+      ref:"main",
+      inputs:{filename,content}
+    })
+  });
+
+  if(res.ok){
+    output.innerText="✅ درخواست ساخت ارسال شد!\nچند ثانیه بعد صفحه را رفرش کنید تا لینک فایل نمایش داده شود.";
+  }else{
+    const data=await res.json();
+    output.innerText=`❌ خطا در ساخت فایل:\n${data.message}`;
+  }
+}
+</script>
+</body>
+</html>
