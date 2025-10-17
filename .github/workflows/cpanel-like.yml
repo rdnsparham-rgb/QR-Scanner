@@ -1,38 +1,32 @@
-name: CPanel-like File Creator
+name: CPanel-like GitHub
 
 on:
   workflow_dispatch:
     inputs:
       filename:
-        description: "نام فایل"
+        description: 'نام فایل'
         required: true
       content:
-        description: "محتوای فایل"
-        required: true
+        description: 'محتوا'
+        required: false
 
 jobs:
   create-file:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Generate random folder
-        id: rand
-        run: echo "RAND=$(cat /dev/urandom | tr -dc A-Z | head -c 7)" >> $GITHUB_ENV
-
-      - name: Create file in random folder
-        run: |
-          mkdir -p V1/$RAND
-          echo "${{ github.event.inputs.content }}" > V1/$RAND/${{ github.event.inputs.filename }}
-          git config user.name "GitHub Action"
-          git config user.email "actions@github.com"
-          git add .
-          git commit -m "Add ${{ github.event.inputs.filename }} in $RAND"
-          git push "https://x-access-token:${{ secrets.MY_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:main
-
-      - name: Show GitHub Pages URL
-        run: |
-          LINK="https://${{ github.repository_owner }}.github.io/${{ github.repository }}/V1/$RAND/${{ github.event.inputs.filename }}"
-          echo "✅ فایل ساخته شد: $LINK"
-          echo "LINK=$LINK" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - name: Install PyGithub
+        run: pip install PyGithub
+      - name: Create or Update File
+        env:
+          MY_TOKEN: ${{ secrets.MY_TOKEN }}
+          REPO_FULL: ${{ github.repository }}
+          FILENAME: ${{ github.event.inputs.filename }}
+          CONTENT: ${{ github.event.inputs.content }}
+          BRANCH: main
+          PREFIX: V1
+        run: python .github/scripts/create_file.py
