@@ -1,12 +1,120 @@
 <!DOCTYPE html>
 <html lang="fa">
 <head>
-  <meta charset="UTF-8">
-  <title>QR Code Viewer</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Scanner</title>
+<style>
+  body {
+    font-family: sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+  }
+  h1 {
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  #reader {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 20px;
+  }
+  input[type="file"] {
+    margin-bottom: 20px;
+  }
+  #result {
+    padding: 10px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    word-break: break-word;
+  }
+  button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    background-color: #fff;
+    color: #333;
+    font-weight: bold;
+  }
+  button:hover {
+    background-color: #ddd;
+  }
+</style>
 </head>
 <body>
-  <h1>QR ساخته شده توسط سرویس توکن‌دار</h1>
-  <!-- اینجا QR ساخته شده توسط Workflow نمایش داده می‌شود -->
-  <img id="qr" src="qr.png" alt="QR Code" />
+<h1>QR Scanner</h1>
+
+<div id="reader"></div>
+
+<input type="file" id="qr-file" accept="image/*">
+<button id="start-camera">شروع اسکن با دوربین</button>
+<button id="stop-camera">توقف دوربین</button>
+
+<div id="result">نتیجه QR اینجا نمایش داده می‌شود</div>
+
+<!-- کتابخانه QR -->
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+  const resultContainer = document.getElementById('result');
+  const qrFileInput = document.getElementById('qr-file');
+  const startCameraBtn = document.getElementById('start-camera');
+  const stopCameraBtn = document.getElementById('stop-camera');
+  let html5QrCode;
+
+  // اسکن از فایل گالری
+  qrFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(event) {
+      try {
+        const qr = new Html5Qrcode("reader");
+        const result = await qr.scanFile(file, true);
+        resultContainer.textContent = "نتیجه: " + result;
+        qr.clear();
+      } catch(err) {
+        resultContainer.textContent = "QR پیدا نشد یا تصویر نامعتبر است.";
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // اسکن با دوربین
+  startCameraBtn.addEventListener('click', async () => {
+    html5QrCode = new Html5Qrcode("reader");
+    try {
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        qrCodeMessage => {
+          resultContainer.textContent = "نتیجه: " + qrCodeMessage;
+        }
+      );
+    } catch(err) {
+      resultContainer.textContent = "دوربین پیدا نشد یا اجازه دسترسی داده نشده.";
+    }
+  });
+
+  // توقف دوربین
+  stopCameraBtn.addEventListener('click', async () => {
+    if (html5QrCode) {
+      await html5QrCode.stop();
+      await html5QrCode.clear();
+      resultContainer.textContent = "دوربین متوقف شد";
+    }
+  });
+</script>
 </body>
 </html>
