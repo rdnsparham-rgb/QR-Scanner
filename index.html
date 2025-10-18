@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>QR Scanner — قوی‌تر (متن + لینک)</title>
+<title>QR Scanner — نهایی</title>
 <style>
   body{font-family:sans-serif;background:#0b1220;color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
   .card{width:100%;max-width:560px;background:linear-gradient(180deg,#071028,#0b1220);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
@@ -22,7 +22,7 @@
 </head>
 <body>
 <div class="card">
-  <h1>QR Scanner — خواندن متن و لینک</h1>
+  <h1>QR Scanner — نهایی</h1>
 
   <div id="reader">ویدیو / تصویر اینجا نمایش داده می‌شود</div>
 
@@ -41,14 +41,14 @@
     <button id="show-raw" class="tiny">نمایش خام</button>
   </div>
 
-  <small>اگر متن نمایش داده نشد یا پیغام خطا اومد، کنسول (DevTools) رو باز کن و لاگ‌ها رو کپی کن.</small>
+  <small>اگر متن نمایش داده نشد یا پیغام خطا اومد، کنسول (DevTools) رو باز کن و لاگ‌ها رو ببین.</small>
 </div>
 
 <!-- کتابخانه‌ها -->
 <script src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
 <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
 
-<!-- یک canvas مخفی برای فالبک jsQR -->
+<!-- canvas مخفی برای فالبک jsQR -->
 <canvas id="hidden-canvas"></canvas>
 
 <script>
@@ -66,220 +66,95 @@
 
   let html5QrCode = null;
   let isCameraRunning = false;
-  let lastDecoded = null; // می‌تونه string یا object باشه
+  let lastDecoded = null;
 
   function setResultText(text, isError=false){
     lastDecoded = text;
     resultDiv.textContent = (isError ? "خطا: " : "نتیجه: ") + (text === null ? '—' : String(text));
     console.log(isError ? "[ERROR]" : "[INFO]", text);
-    // نمایش دکمه‌های عملیاتی اگر متن معتبره
     if (!isError && text !== null && String(text).trim() !== '') {
       actionsArea.style.display = 'flex';
-      // اگر URL بود، دکمه باز کردن لینک فعال میشه
-      if (isProbablyUrl(String(text).trim())) {
-        openLinkBtn.style.display = 'inline-block';
-      } else {
-        openLinkBtn.style.display = 'none';
-      }
-    } else {
-      actionsArea.style.display = 'none';
-    }
+      if (isProbablyUrl(String(text).trim())) openLinkBtn.style.display='inline-block';
+      else openLinkBtn.style.display='none';
+    } else actionsArea.style.display = 'none';
   }
 
   function isProbablyUrl(s){
-    try {
-      // اگر با http/https شروع شد یا شبیه دامنه باشه
-      return /^(https?:\/\/)/i.test(s) || /^[\w-]+\.[\w-]{2,}/.test(s);
-    } catch(e){ return false; }
+    try { return /^(https?:\/\/)/i.test(s) || /^[\w-]+\.[\w-]{2,}/.test(s); }
+    catch(e){ return false; }
   }
 
   function ensureInstance(){
-    if (html5QrCode) return html5QrCode;
-    html5QrCode = new Html5Qrcode(readerElem.id, { verbose: false });
+    if(html5QrCode) return html5QrCode;
+    html5QrCode = new Html5Qrcode(readerElem.id, { verbose:false });
     return html5QrCode;
   }
 
-  // دوربین
-  startBtn.addEventListener('click', async () => {
-    try {
+  startBtn.addEventListener('click', async ()=>{
+    try{
       const inst = ensureInstance();
-      await inst.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        qrMessage => {
-          // بعضی نسخه‌ها qrMessage ممکنه رشته باشه یا شیء
-          if (typeof qrMessage === 'object' && qrMessage.decodedText) {
-            setResultText(qrMessage.decodedText);
-          } else {
-            setResultText(qrMessage);
-          }
-        }
-      );
+      await inst.start({facingMode:"environment"},{fps:10,qrbox:250}, qrMessage=>{
+        if(typeof qrMessage==='object' && qrMessage.decodedText) setResultText(qrMessage.decodedText);
+        else setResultText(qrMessage);
+      });
       isCameraRunning = true;
       setResultText("دوربین فعال شد — منتظر QR ...");
-    } catch (err) {
-      setResultText("دوربین فعال نشد: " + (err && err.message ? err.message : err), true);
-      console.error("start error:", err);
+    }catch(err){
+      setResultText("دوربین فعال نشد: "+(err.message||err),true);
+      console.error("start error:",err);
     }
   });
 
-  // توقف
-  stopBtn.addEventListener('click', async () => {
-    if (!html5QrCode) {
-      setResultText("دوربینی در حال اجرا نیست", true);
-      return;
-    }
-    try {
+  stopBtn.addEventListener('click', async ()=>{
+    if(!html5QrCode){ setResultText("دوربینی در حال اجرا نیست",true); return; }
+    try{
       await html5QrCode.stop();
       await html5QrCode.clear();
       html5QrCode = null;
-      isCameraRunning = false;
+      isCameraRunning=false;
       setResultText("دوربین متوقف شد");
-    } catch (err) {
-      setResultText("خطا در توقف دوربین: " + err, true);
-      console.error("stop error:", err);
+    }catch(err){
+      setResultText("خطا در توقف دوربین: "+err,true);
+      console.error("stop error:",err);
     }
   });
 
-  // پاک کردن نتیجه
-  clearBtn.addEventListener('click', () => {
-    setResultText(null);
+  clearBtn.addEventListener('click', ()=>{ setResultText(null); });
+  openLinkBtn.addEventListener('click', ()=>{
+    if(!lastDecoded) return;
+    let s=String(lastDecoded).trim();
+    if(!/^(https?:\/\/)/i.test(s)) s='http://'+s;
+    window.open(s,'_blank');
   });
-
-  // باز کردن لینک (اگر URL باشه)
-  openLinkBtn.addEventListener('click', () => {
-    if (!lastDecoded) return;
-    const s = String(lastDecoded).trim();
-    let url = s;
-    if (!/^(https?:\/\/)/i.test(url)) url = 'http://' + url;
-    window.open(url, '_blank');
+  copyBtn.addEventListener('click', async ()=>{
+    if(!lastDecoded) return;
+    try{ await navigator.clipboard.writeText(String(lastDecoded)); alert('متن کپی شد'); }
+    catch(e){ alert('کپی نشد — ممکن است مرورگر اجازه ندهد'); }
   });
+  showRawBtn.addEventListener('click', ()=>{ if(lastDecoded) alert(String(lastDecoded)); });
 
-  // کپی متن
-  copyBtn.addEventListener('click', async () => {
-    if (!lastDecoded) return;
-    try {
-      await navigator.clipboard.writeText(String(lastDecoded));
-      alert('متن کپی شد');
-    } catch (e) {
-      alert('کپی نشد — ممکن است مرورگر اجازه ندهد');
-    }
-  });
-
-  // نمایش خام (برای دیباگ)
-  showRawBtn.addEventListener('click', () => {
-    if (!lastDecoded) return alert(String(lastDecoded));
-  });
-
-  // اسکن فایل: ابتدا تلاش می‌کنیم با html5-qrcode، سپس fallback به jsQR
-  fileInput.addEventListener('change', async (ev) => {
+  fileInput.addEventListener('change', async (ev)=>{
     const f = ev.target.files && ev.target.files[0];
-    if (!f) return;
+    if(!f) return;
     setResultText("در حال پردازش تصویر...");
-    try {
+    try{
       const inst = ensureInstance();
-
-      // بعضی نسخه‌ها scanFileV2 برمی‌گرداند شیء {decodedText,...}
-      if (typeof inst.scanFileV2 === 'function') {
-        try {
-          const res = await inst.scanFileV2(f, true);
-          // res ممکنه شیء یا رشته باشه
-          if (res && (res.decodedText || typeof res === 'string')) {
-            const txt = res.decodedText ? res.decodedText : res;
-            setResultText(txt);
+      if(typeof inst.scanFileV2==='function'){
+        try{
+          const res = await inst.scanFileV2(f,true);
+          if(res && (res.decodedText || typeof res==='string')){
+            setResultText(res.decodedText?res.decodedText:res);
             return;
           }
-        } catch (e) {
-          console.warn('scanFileV2 failed:', e);
-        }
+        }catch(e){ console.warn('scanFileV2 failed:',e); }
       }
-
-      // fallback به scanFile
-      if (typeof inst.scanFile === 'function') {
-        try {
-          const res2 = await inst.scanFile(f, true);
-          if (res2) { setResultText(res2); return; }
-        } catch (e) {
-          console.warn('scanFile failed:', e);
-        }
+      if(typeof inst.scanFile==='function'){
+        try{ const res2 = await inst.scanFile(f,true); if(res2){ setResultText(res2); return; } }
+        catch(e){ console.warn('scanFile failed:',e); }
       }
-
-      // آخرین فالبک: jsQR (پردازش تصویر با canvas)
       const dataUrl = await fileToDataUrl(f);
       const img = await loadImage(dataUrl);
       const detection = tryJsQrDecode(img);
-      if (detection) {
-        setResultText(detection);
-        return;
-      } else {
-        setResultText("QR پیدا نشد یا تصویر خیلی تار است.", true);
-        console.error("All methods failed. jsQR result null.");
-      }
-
-    } catch (err) {
-      setResultText("خطا هنگام اسکن فایل: " + err, true);
-      console.error("file scan error:", err);
-    }
-  });
-
-  // تبدیل فایل به DataURL
-  function fileToDataUrl(file){
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = e => res(e.target.result);
-      r.onerror = e => rej(e);
-      r.readAsDataURL(file);
-    });
-  }
-
-  function loadImage(dataUrl){
-    return new Promise((res, rej) => {
-      const img = new Image();
-      img.onload = () => res(img);
-      img.onerror = e => rej(e);
-      img.src = dataUrl;
-      // اگر تصویربرداری از موبایل ممکنه لازم باشه crossOrigin
-    });
-  }
-
-  function tryJsQrDecode(img){
-    try {
-      const canvas = hiddenCanvas;
-      const ctx = canvas.getContext('2d');
-      // اندازه canvas رو مطابق تصویر بذار
-      const maxDim = 1000; // برای کاهش حافظه اگر تصویر خیلی بزرگه
-      let w = img.naturalWidth;
-      let h = img.naturalHeight;
-      if (w > maxDim || h > maxDim) {
-        const scale = Math.min(maxDim / w, maxDim / h);
-        w = Math.floor(w * scale);
-        h = Math.floor(h * scale);
-      }
-      canvas.width = w;
-      canvas.height = h;
-      ctx.drawImage(img, 0, 0, w, h);
-      const imageData = ctx.getImageData(0, 0, w, h);
-      // jsQR expects Uint8ClampedArray
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code && code.data) {
-        console.log('jsQR success:', code);
-        return code.data;
-      }
-      return null;
-    } catch (e) {
-      console.error('jsQR error:', e);
-      return null;
-    }
-  }
-
-  // در unload صفحه تلاش برای پاکسازی
-  window.addEventListener('beforeunload', async () => {
-    try {
-      if (html5QrCode) { await html5QrCode.stop(); await html5QrCode.clear(); }
-    } catch(e){}
-  });
-
-  // اگر خواستی می‌تونم یک دکمه اضافه کنم که نتیجه رو به صورت History ذخیره کنه
-</script>
-</body>
-</html>
+      if(detection){ setResultText(detection); return; }
+      else{ setResultText("QR پیدا نشد یا تصویر خیلی تار است.",true); console.error("All methods failed."); }
+    }catch(err){ setResultText("خطا هنگام اسکن فایل: "+err,true); console.error("file scan error:",err); }
