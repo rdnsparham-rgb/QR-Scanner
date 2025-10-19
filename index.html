@@ -51,13 +51,16 @@ small{display:block;margin-top:8px;color:#99a3b5;text-align:center}
 <button id="crop-confirm">✔️</button>
 </div>
 
-<script src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
 <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
-<canvas id="hidden-canvas" style="display:none"></canvas>
 
 <script>
-window.addEventListener('DOMContentLoaded', () => {
+const qrScript=document.createElement('script');
+qrScript.src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js";
+qrScript.onload=()=>initQrScanner();
+document.head.appendChild(qrScript);
+
+function initQrScanner(){
 const readerElem=document.getElementById('reader');
 const fileInput=document.getElementById('qr-file');
 const startBtn=document.getElementById('start-camera');
@@ -68,7 +71,7 @@ const actionsArea=document.getElementById('actions-area');
 const openLinkBtn=document.getElementById('open-link');
 const copyBtn=document.getElementById('copy-text');
 const showRawBtn=document.getElementById('show-raw');
-const hiddenCanvas=document.getElementById('hidden-canvas');
+const hiddenCanvas=document.createElement('canvas');
 
 const cropModal=document.getElementById('crop-modal');
 const cropImage=document.getElementById('crop-image');
@@ -88,7 +91,6 @@ else openLinkBtn.style.display='none';
 }
 
 function ensureHtml5Instance(){
-if(typeof Html5Qrcode==='undefined'){console.warn('Html5Qrcode not loaded');return null;}
 if(html5QrCode) return html5QrCode;
 html5QrCode=new Html5Qrcode(readerElem.id,{verbose:false});
 return html5QrCode;
@@ -98,20 +100,19 @@ return html5QrCode;
 startBtn.addEventListener('click',async ()=>{
 try{
 const inst=ensureHtml5Instance();
-if(!inst) return setResultText('کتابخانه Html5Qrcode بارگذاری نشده',true);
 await inst.start({facingMode:"environment"},{fps:10,qrbox:{width:300,height:300}}, qrMessage=>{
 if(typeof qrMessage==='object' && qrMessage.decodedText) setResultText(qrMessage.decodedText);
 else setResultText(qrMessage);
 });
 setResultText('دوربین فعال شد — منتظر QR ...');
-}catch(err){setResultText('دوربین فعال نشد: '+(err?.message||err),true);console.error('start camera error:',err);}
+}catch(err){setResultText('دوربین فعال نشد: '+(err?.message||err),true);}
 });
 
 stopBtn.addEventListener('click',async ()=>{
 try{if(!html5QrCode) return setResultText('دوربینی در حال اجرا نیست',true);
 await html5QrCode.stop();await html5QrCode.clear();html5QrCode=null;
 setResultText('دوربین متوقف شد');
-}catch(err){setResultText('خطا در توقف دوربین: '+err,true);console.error('stop camera error:',err);}
+}catch(err){setResultText('خطا در توقف دوربین: '+err,true);}
 });
 
 clearBtn.addEventListener('click',()=>setResultText(null));
@@ -158,16 +159,16 @@ canvas.width=w;canvas.height=h;
 ctx.drawImage(img,0,0,w,h);
 const imageData=ctx.getImageData(0,0,w,h);
 const code=jsQR(imageData.data,imageData.width,imageData.height);
-if(code&&code.data){console.log('jsQR success:',code);return code.data;}
+if(code&&code.data){return code.data;}
 return null;
-}catch(e){console.error('jsQR error:',e);return null;}
+}catch(e){return null;}
 }
 
 /* cleanup */
 window.addEventListener('beforeunload',async ()=>{
 try{if(html5QrCode){await html5QrCode.stop();await html5QrCode.clear();}}catch(e){}
 });
-});
+}
 </script>
 </body>
 </html>
