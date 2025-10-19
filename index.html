@@ -3,113 +3,177 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>QR Scanner نهایی</title>
+<title>QR Scanner — اصلاح شده</title>
 <style>
-body{font-family:sans-serif;background:#0b1220;color:#e6eef8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:16px}
-.card{width:100%;max-width:600px;background:linear-gradient(180deg,#071028,#0b1220);padding:18px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
-h1{margin:0 0 12px;text-align:center;font-size:20px}
-#reader{width:100%;height:360px;background:#000;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#999;overflow:hidden}
-.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
-button,input[type=file]{padding:10px 12px;border-radius:8px;border:0;cursor:pointer;background:#e6eef8;color:#0b1220;font-weight:600}
-input[type=file]{background:transparent;color:inherit;border:1px dashed rgba(230,238,248,0.12);padding:8px}
-#result{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.03);word-break:break-word;min-height:56px}
-.actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
-.tiny{padding:6px 8px;font-size:13px}
-.link-btn{background:transparent;border:1px solid rgba(230,238,248,0.12);color:#a8d0ff}
-small{display:block;margin-top:8px;color:#99a3b5;text-align:center}
-canvas{display:none}
+  body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;padding:18px;margin:0;background:#0f172a;color:#e6eef8;}
+  .card{width:100%;max-width:480px;background:linear-gradient(180deg,#0b1220 0%, #0f172a 100%);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);}
+  h1{margin:0 0 12px;font-size:20px;text-align:center}
+  #reader{width:100%;height:320px;background:#000;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#999}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
+  button,input[type=file]{padding:10px 12px;border-radius:8px;border:0;cursor:pointer}
+  #result{margin-top:12px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.04);word-break:break-word;min-height:44px}
+  small{display:block;margin-top:6px;color:#99a3b5;text-align:center}
 </style>
 </head>
 <body>
 <div class="card">
-  <h1>QR Scanner نهایی</h1>
+  <h1>QR Scanner</h1>
   <div id="reader">ویدیو / تصویر اینجا نمایش داده می‌شود</div>
+
   <div class="controls">
-    <input id="qr-file" type="file" accept="image/*" title="انتخاب عکس از گالری">
-    <button id="start-camera">شروع اسکن با دوربین</button>
+    <input id="qr-file" type="file" accept="image/*">
+    <button id="start-camera">شروع اسکن (دوربین)</button>
     <button id="stop-camera">توقف دوربین</button>
-    <button id="clear-result" class="tiny">پاک کردن نتیجه</button>
+    <button id="test-decode">تست خواندن (برای دیباگ)</button>
   </div>
+
   <div id="result">نتیجه: —</div>
-  <div class="actions" id="actions-area" style="display:none">
-    <button id="open-link" class="tiny link-btn">باز کردن لینک</button>
-    <button id="copy-text" class="tiny">کپی متن</button>
-    <button id="show-raw" class="tiny">نمایش خام</button>
-  </div>
-  <small>اگر مشکل داشتید، کنسول مرورگر را باز کنید (F12).</small>
+  <small>اگر دوربین کار نکرد، کنسول مرورگر (DevTools) را باز کن و خطاها را ببین.</small>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
-<script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
-<canvas id="hidden-canvas"></canvas>
+<script src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
 <script>
-const readerElem = document.getElementById('reader');
-const fileInput = document.getElementById('qr-file');
-const startBtn = document.getElementById('start-camera');
-const stopBtn = document.getElementById('stop-camera');
-const clearBtn = document.getElementById('clear-result');
-const resultDiv = document.getElementById('result');
-const actionsArea = document.getElementById('actions-area');
-const openLinkBtn = document.getElementById('open-link');
-const copyBtn = document.getElementById('copy-text');
-const showRawBtn = document.getElementById('show-raw');
-const hiddenCanvas = document.getElementById('hidden-canvas');
+  const readerElem = document.getElementById('reader');
+  const fileInput = document.getElementById('qr-file');
+  const startBtn = document.getElementById('start-camera');
+  const stopBtn = document.getElementById('stop-camera');
+  const testBtn = document.getElementById('test-decode');
+  const resultDiv = document.getElementById('result');
 
-let html5QrCode=null;
-let lastDecoded=null;
+  let html5QrCode = null;
+  let isCameraRunning = false;
 
-function setResultText(text,isError=false){
-  lastDecoded=text;
-  resultDiv.textContent=(isError?"خطا: ":"نتیجه: ")+(text===null?'—':String(text));
-  if(!isError && text!==null && String(text).trim()!==''){
-    actionsArea.style.display='flex';
-    if(/^(https?:\/\/)/i.test(String(text).trim())) openLinkBtn.style.display='inline-block';
-    else openLinkBtn.style.display='none';
-  }else actionsArea.style.display='none';
-}
-
-function ensureInstance(){
-  if(html5QrCode) return html5QrCode;
-  html5QrCode=new Html5Qrcode(readerElem.id,{verbose:false});
-  return html5QrCode;
-}
-
-startBtn.addEventListener('click',async ()=>{
-  try{
-    const inst=ensureInstance();
-    await inst.start({facingMode:"environment"},{fps:10,qrbox:250}, qrMsg=>setResultText(qrMsg));
-    setResultText("دوربین فعال شد — منتظر QR ...");
-  }catch(err){
-    setResultText("دوربین فعال نشد: "+(err.message||err),true);
+  function setResult(text, isError=false){
+    resultDiv.textContent = (isError ? "خطا: " : "نتیجه: ") + text;
+    console.log(isError ? "[ERROR]" : "[INFO]", text);
   }
-});
 
-stopBtn.addEventListener('click',async ()=>{
-  try{
-    if(!html5QrCode) return setResultText("دوربینی در حال اجرا نیست",true);
-    await html5QrCode.stop(); await html5QrCode.clear(); html5QrCode=null;
-    setResultText("دوربین متوقف شد");
-  }catch(err){ setResultText("خطا در توقف دوربین: "+err,true); }
-});
+  // ایجاد یا بازنشانی نمونه
+  function ensureInstance(){
+    if (html5QrCode) return html5QrCode;
+    html5QrCode = new Html5Qrcode(readerElem.id, { verbose: false });
+    return html5QrCode;
+  }
 
-clearBtn.addEventListener('click',()=>setResultText(null));
-openLinkBtn.addEventListener('click',()=>{if(!lastDecoded)return;let s=String(lastDecoded).trim();if(!/^(https?:\/\/)/i.test(s)) s='http://'+s;window.open(s,'_blank');});
-copyBtn.addEventListener('click',async ()=>{if(!lastDecoded)return;try{await navigator.clipboard.writeText(String(lastDecoded));alert('متن کپی شد');}catch(e){alert('کپی نشد');}});
-showRawBtn.addEventListener('click',()=>{if(lastDecoded) alert(String(lastDecoded));});
+  // شروع دوربین
+  startBtn.addEventListener('click', async () => {
+    try {
+      const instance = ensureInstance();
+      // گزینه‌ها: می‌توانی fps یا qrbox را تغییر بدی
+      await instance.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        qrMessage => {
+          setResult(qrMessage);
+          // اگر می‌خوای بعد از خواندن متوقف بشه، اینجا stop کن:
+          // instance.stop().then(()=> instance.clear());
+        }
+      );
+      isCameraRunning = true;
+      setResult("دوربین فعال شد. منتظر QR ...");
+    } catch (err) {
+      setResult("دوربین فعال نشد — " + (err && err.message ? err.message : err), true);
+      console.error("start error:", err);
+    }
+  });
 
-fileInput.addEventListener('change',async ev=>{
-  const f=ev.target.files[0]; if(!f) return; setResultText("در حال پردازش تصویر...");
-  try{
-    const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.onerror=e=>rej(e);r.readAsDataURL(f);});
-    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=e=>rej(e);i.src=dataUrl;});
-    const canvas=hiddenCanvas; const ctx=canvas.getContext('2d'); canvas.width=img.naturalWidth; canvas.height=img.naturalHeight;
-    ctx.drawImage(img,0,0);
-    const code=jsQR(ctx.getImageData(0,0,img.naturalWidth,img.naturalHeight).data,img.naturalWidth,img.naturalHeight);
-    if(code && code.data){setResultText(code.data);} else setResultText("QR پیدا نشد",true);
-  }catch(err){setResultText("خطا هنگام پردازش فایل: "+err,true);}
-});
+  // توقف دوربین
+  stopBtn.addEventListener('click', async () => {
+    if (!html5QrCode) { setResult("دوربین در حال اجرا نیست", true); return; }
+    try {
+      await html5QrCode.stop();
+      await html5QrCode.clear();
+      isCameraRunning = false;
+      html5QrCode = null;
+      setResult("دوربین متوقف شد");
+    } catch (err) {
+      setResult("خطا هنگام توقف دوربین: " + err, true);
+      console.error("stop error:", err);
+    }
+  });
 
-window.addEventListener('beforeunload',async ()=>{try{if(html5QrCode){await html5QrCode.stop();await html5QrCode.clear();}}catch(e){}});
+  // اسکن فایل از گالری — با fallback برای نسخه‌های مختلف کتابخانه
+  fileInput.addEventListener('change', async (ev) => {
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return setResult("فایلی انتخاب نشده", true);
+
+    try {
+      const instance = ensureInstance();
+
+      // اگر متد scanFileV2 موجود باشه ازش استفاده کن (نسخه‌های جدید)
+      if (typeof instance.scanFileV2 === 'function') {
+        setResult("در حال پردازش تصویر (scanFileV2) ...");
+        instance.scanFileV2(f, true)
+          .then(decodedText => {
+            setResult(decodedText);
+          })
+          .catch(err => {
+            setResult("QR پیدا نشد یا تصویر نامناسب است.", true);
+            console.error("scanFileV2 error:", err);
+          });
+        return;
+      }
+
+      // fallback به scanFile (نسخه‌های قدیمی‌تر)
+      if (typeof instance.scanFile === 'function') {
+        setResult("در حال پردازش تصویر (scanFile) ...");
+        instance.scanFile(f, true)
+          .then(decodedText => {
+            setResult(decodedText);
+          })
+          .catch(err => {
+            setResult("QR پیدا نشد یا تصویر نامناسب است.", true);
+            console.error("scanFile error:", err);
+          });
+        return;
+      }
+
+      // آخرین fallback: تبدیل به DataURL و استفاده از decodeAsync (اگر موجود باشد)
+      if (typeof instance.decodeAsync === 'function') {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            setResult("در حال پردازش تصویر (decodeAsync) ...");
+            const imgData = e.target.result;
+            const r = await instance.decodeAsync(imgData);
+            setResult(r);
+          } catch(err){
+            setResult("QR پیدا نشد یا تصویر نامناسب است.", true);
+            console.error("decodeAsync error:", err);
+          }
+        };
+        reader.readAsDataURL(f);
+        return;
+      }
+
+      setResult("متد مناسب برای اسکن فایل در این نسخه از کتابخانه موجود نیست.", true);
+      console.error("No scanFile method available on Html5Qrcode instance:", instance);
+
+    } catch (err) {
+      setResult("خطا هنگام اسکن فایل: " + err, true);
+      console.error("file scan overall error:", err);
+    }
+  });
+
+  // دکمه تست ساده برای اطمینان از اینکه instance ساخته میشه
+  testBtn.addEventListener('click', () => {
+    try {
+      ensureInstance();
+      setResult("نمونه Html5Qrcode ساخته شد؛ کنسول را برای خطاها چک کن.");
+    } catch (e) {
+      setResult("نمیتوان نمونه ساخت: " + e, true);
+    }
+  });
+
+  // در unload صفحه، پاکسازی کن
+  window.addEventListener('beforeunload', async () => {
+    try {
+      if (html5QrCode) {
+        await html5QrCode.stop();
+        await html5QrCode.clear();
+      }
+    } catch (e) { /* ignore */ }
+  });
 </script>
 </body>
 </html>
