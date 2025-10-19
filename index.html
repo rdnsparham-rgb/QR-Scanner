@@ -27,41 +27,31 @@ small{display:block;margin-top:8px;color:#99a3b5;text-align:center}
 <div class="card">
 <h1>QR Scanner — نهایی</h1>
 <div id="reader">ویدیو / تصویر اینجا نمایش داده می‌شود</div>
-
 <div class="controls">
-<input id="qr-file" type="file" accept="image/*" title="انتخاب عکس از گالری">
+<input id="qr-file" type="file" accept="image/*">
 <button id="start-camera">شروع اسکن با دوربین</button>
 <button id="stop-camera">توقف دوربین</button>
 <button id="clear-result" class="tiny">پاک کردن نتیجه</button>
 </div>
-
 <div id="result">نتیجه: —</div>
-
 <div class="actions" id="actions-area" style="display:none">
 <button id="open-link" class="tiny link-btn">باز کردن لینک</button>
 <button id="copy-text" class="tiny">کپی متن</button>
 <button id="show-raw" class="tiny">نمایش خام</button>
 </div>
-
-<small>در صورت مشکل، کنسول مرورگر را باز کنید (F12) و پیام‌ها را بررسی کنید.</small>
-
-<!-- Crop modal -->
+<small>در صورت مشکل، کنسول مرورگر را باز کنید</small>
 <div id="crop-modal">
 <img id="crop-image"/>
 <button id="crop-confirm">✔️</button>
 </div>
 
+<script src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
 <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 
 <script>
-const qrScript=document.createElement('script');
-qrScript.src="https://unpkg.com/html5-qrcode@2.3.12/minified/html5-qrcode.min.js";
-qrScript.onload=()=>initQrScanner();
-document.head.appendChild(qrScript);
-
-function initQrScanner(){
-const readerElem=document.getElementById('reader');
+window.onload=function(){
+const reader=document.getElementById('reader');
 const fileInput=document.getElementById('qr-file');
 const startBtn=document.getElementById('start-camera');
 const stopBtn=document.getElementById('stop-camera');
@@ -72,103 +62,41 @@ const openLinkBtn=document.getElementById('open-link');
 const copyBtn=document.getElementById('copy-text');
 const showRawBtn=document.getElementById('show-raw');
 const hiddenCanvas=document.createElement('canvas');
-
 const cropModal=document.getElementById('crop-modal');
 const cropImage=document.getElementById('crop-image');
 const cropConfirm=document.getElementById('crop-confirm');
-let cropper=null;
-let html5QrCode=null;
-let lastDecoded=null;
+let cropper=null,html5QrCode=null,lastDecoded=null;
 
-function setResultText(text,isError=false){
-lastDecoded=text;
-resultDiv.textContent=(isError?"خطا: ":"نتیجه: ")+(text===null?'—':String(text));
-if(!isError && text!==null && String(text).trim()!==''){
-actionsArea.style.display='flex';
-if(/^(https?:\/\/)/i.test(String(text).trim())||/^[\w-]+\.[\w-]{2,}/.test(String(text).trim())) openLinkBtn.style.display='inline-block';
-else openLinkBtn.style.display='none';
-}else actionsArea.style.display='none';
-}
+function setResult(txt,isErr=false){
+lastDecoded=txt;
+resultDiv.textContent=(isErr?"خطا: ":"نتیجه: ")+(txt||'—');
+if(!isErr && txt){actionsArea.style.display='flex';
+if(/^(https?:\/\/)/i.test(txt)||/^[\w-]+\.[\w-]{2,}/.test(txt)) openLinkBtn.style.display='inline-block';
+else openLinkBtn.style.display='none';} else actionsArea.style.display='none';}
 
-function ensureHtml5Instance(){
-if(html5QrCode) return html5QrCode;
-html5QrCode=new Html5Qrcode(readerElem.id,{verbose:false});
-return html5QrCode;
-}
+function ensureQr(){if(html5QrCode)return html5QrCode;html5QrCode=new Html5Qrcode(reader.id,{verbose:false});return html5QrCode;}
 
 /* CAMERA */
-startBtn.addEventListener('click',async ()=>{
+startBtn.onclick=async()=>{
 try{
-const inst=ensureHtml5Instance();
-await inst.start({facingMode:"environment"},{fps:10,qrbox:{width:300,height:300}}, qrMessage=>{
-if(typeof qrMessage==='object' && qrMessage.decodedText) setResultText(qrMessage.decodedText);
-else setResultText(qrMessage);
-});
-setResultText('دوربین فعال شد — منتظر QR ...');
-}catch(err){setResultText('دوربین فعال نشد: '+(err?.message||err),true);}
-});
-
-stopBtn.addEventListener('click',async ()=>{
-try{if(!html5QrCode) return setResultText('دوربینی در حال اجرا نیست',true);
-await html5QrCode.stop();await html5QrCode.clear();html5QrCode=null;
-setResultText('دوربین متوقف شد');
-}catch(err){setResultText('خطا در توقف دوربین: '+err,true);}
-});
-
-clearBtn.addEventListener('click',()=>setResultText(null));
-
-openLinkBtn.addEventListener('click',()=>{if(!lastDecoded)return;let s=String(lastDecoded).trim();if(!/^(https?:\/\/)/i.test(s)) s='http://'+s;window.open(s,'_blank');});
-copyBtn.addEventListener('click',async ()=>{if(!lastDecoded)return;try{await navigator.clipboard.writeText(String(lastDecoded));alert('متن کپی شد');}catch(e){alert('کپی نشد — مرورگر اجازه نداد');}});
-showRawBtn.addEventListener('click',()=>{if(lastDecoded) alert(String(lastDecoded));});
+const inst=ensureQr();
+await inst.start({facingMode:"environment"},{fps:10,qrbox:{width:300,height:300}}, msg=>setResult(msg.data||msg));
+setResult('دوربین فعال شد — منتظر QR ...');
+}catch(e){setResult('دوربین فعال نشد: '+(e.message||e),true);}
+};
+stopBtn.onclick=async()=>{try{if(!html5QrCode) return setResult('دوربینی در حال اجرا نیست',true); await html5QrCode.stop();await html5QrCode.clear();html5QrCode=null; setResult('دوربین متوقف شد');}catch(e){setResult('خطا در توقف دوربین: '+e,true);}};
+clearBtn.onclick=()=>setResult(null);
+openLinkBtn.onclick=()=>{if(!lastDecoded)return;let s=lastDecoded.trim();if(!/^(https?:\/\/)/i.test(s)) s='http://'+s;window.open(s,'_blank');};
+copyBtn.onclick=async()=>{if(!lastDecoded)return;try{await navigator.clipboard.writeText(lastDecoded);alert('متن کپی شد');}catch(e){alert('کپی نشد');}};
+showRawBtn.onclick=()=>{if(lastDecoded) alert(lastDecoded);};
 
 /* FILE + Cropper */
-fileInput.addEventListener('change',async (ev)=>{
-const f=ev.target.files&&ev.target.files[0];
-if(!f) return;
-const url=URL.createObjectURL(f);
-cropImage.src=url;
-cropModal.style.display='flex';
-if(cropper) cropper.destroy();
-cropper=new Cropper(cropImage,{viewMode:1,autoCropArea:1,background:false,responsive:true});
-});
+fileInput.onchange=ev=>{const f=ev.target.files[0];if(!f) return; cropImage.src=URL.createObjectURL(f); cropModal.style.display='flex'; if(cropper) cropper.destroy(); cropper=new Cropper(cropImage,{viewMode:1,autoCropArea:1,background:false,responsive:true});};
+cropConfirm.onclick=()=>{if(!cropper) return; const canvas=cropper.getCroppedCanvas(); cropModal.style.display='none'; cropper.destroy(); cropper=null; const img=new Image(); img.onload=()=>scanImg(img); img.src=canvas.toDataURL();};
 
-cropConfirm.addEventListener('click',async ()=>{
-if(!cropper) return;
-const canvas=cropper.getCroppedCanvas();
-cropModal.style.display='none';
-cropper.destroy();cropper=null;
-const img=new Image();
-img.onload=()=>scanImage(img);
-img.src=canvas.toDataURL();
-});
-
-async function scanImage(img){
-setResultText('در حال پردازش تصویر...');
-try{
-const detection=tryJsQrDecode(img,img.naturalWidth||img.width,img.naturalHeight||img.height);
-if(detection){setResultText(detection);return;}
-setResultText('QR پیدا نشد یا تصویر مشکل دارد.',true);
-}catch(err){setResultText('خطا هنگام پردازش تصویر: '+(err?.message||err),true);}
-}
-
-function tryJsQrDecode(img,w,h){
-try{
-const canvas=hiddenCanvas;
-const ctx=canvas.getContext('2d');
-canvas.width=w;canvas.height=h;
-ctx.drawImage(img,0,0,w,h);
-const imageData=ctx.getImageData(0,0,w,h);
-const code=jsQR(imageData.data,imageData.width,imageData.height);
-if(code&&code.data){return code.data;}
-return null;
-}catch(e){return null;}
-}
-
-/* cleanup */
-window.addEventListener('beforeunload',async ()=>{
-try{if(html5QrCode){await html5QrCode.stop();await html5QrCode.clear();}}catch(e){}
-});
-}
+function scanImg(img){setResult('در حال پردازش تصویر...'); try{const code=jsQRCanvas(img); if(code) {setResult(code);return;} setResult('QR پیدا نشد یا تصویر مشکل دارد',true);}catch(e){setResult('خطا هنگام پردازش تصویر: '+e,true);}}
+function jsQRCanvas(img){const canvas=hiddenCanvas;const ctx=canvas.getContext('2d');canvas.width=img.naturalWidth||img.width; canvas.height=img.naturalHeight||img.height; ctx.drawImage(img,0,0,canvas.width,canvas.height); const data=ctx.getImageData(0,0,canvas.width,canvas.height); const code=jsQR(data.data,data.width,data.height); return code?code.data:null;}
+};
 </script>
 </body>
 </html>
