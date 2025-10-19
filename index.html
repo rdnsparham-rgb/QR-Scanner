@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Scanner — فقط گالری</title>
+<title>QR Scanner — گالری با نتیجه عکس</title>
 <style>
 body {
   font-family: sans-serif;
@@ -14,22 +14,16 @@ body {
   background: #0b1220;
   color: #fff;
 }
-h1 {
-  margin-bottom: 20px;
-}
-#qr-file {
-  margin-bottom: 20px;
-}
-#result-canvas {
-  border: 2px solid #fff;
-  border-radius: 8px;
-  max-width: 100%;
-}
+h1 { margin-bottom: 20px; text-align:center; }
+#qr-file { margin-bottom: 20px; }
+#result-canvas { border: 2px solid #fff; border-radius: 8px; max-width:100%; display:none; margin-top:20px; }
+#open-link { margin-top:10px; display:none; padding:10px 20px; font-weight:bold; cursor:pointer; background:#fff; color:#333; border:none; border-radius:6px; }
 </style>
 </head>
 <body>
 <h1>QR Scanner — گالری</h1>
 <input type="file" id="qr-file" accept="image/*">
+<button id="open-link">باز کردن در مرورگر</button>
 <canvas id="result-canvas"></canvas>
 
 <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
@@ -37,6 +31,8 @@ h1 {
 const fileInput = document.getElementById('qr-file');
 const canvas = document.getElementById('result-canvas');
 const ctx = canvas.getContext('2d');
+const openLinkBtn = document.getElementById('open-link');
+let lastDecoded = null;
 
 fileInput.addEventListener('change', async (ev) => {
   const file = ev.target.files[0];
@@ -56,34 +52,40 @@ fileInput.addEventListener('change', async (ev) => {
     i.src = dataUrl;
   });
 
-  // تنظیم سایز کانواس
   canvas.width = img.naturalWidth;
   canvas.height = img.naturalHeight;
   ctx.drawImage(img, 0, 0);
 
   const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
   const code = jsQR(imageData.data, canvas.width, canvas.height);
+  lastDecoded = code && code.data ? code.data : null;
 
-  if(code && code.data){
-    // دور برش
-    const margin = 10;
-    const x = Math.max(code.location.topLeftCorner.x - margin,0);
-    const y = Math.max(code.location.topLeftCorner.y - margin,0);
-    const w = Math.min(code.location.bottomRightCorner.x - code.location.topLeftCorner.x + 2*margin, canvas.width - x);
-    const h = Math.min(code.location.bottomRightCorner.y - code.location.topLeftCorner.y + 2*margin, canvas.height - y);
-
-    const qrImageData = ctx.getImageData(x,y,w,h);
-    canvas.width = w;
-    canvas.height = h;
-    ctx.putImageData(qrImageData,0,0);
-
-    // اضافه کردن متن روی تصویر
-    ctx.fillStyle = "#fffa";
-    ctx.font = Math.floor(canvas.height/12) + "px sans-serif";
-    ctx.fillText("rdnsparham-rgb.github.io/QR-Scanner", 10, canvas.height - 10);
+  // تعیین اینکه لینک نمایش داده شود یا نه
+  if(lastDecoded && /^https?:\/\//i.test(lastDecoded)){
+    openLinkBtn.style.display = "inline-block";
   } else {
-    alert("QR پیدا نشد یا تصویر نامعتبر است.");
+    openLinkBtn.style.display = "none";
   }
+
+  // 3 ثانیه صبر قبل از نمایش نتیجه
+  setTimeout(() => {
+    // کشیدن تصویر نهایی
+    ctx.drawImage(img,0,0);
+
+    // اضافه کردن متن وسط تصویر
+    const fontSize = Math.floor(canvas.height/12);
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.font = fontSize + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("rdnsparham-rgb.github.io/QR-Scanner", canvas.width/2, canvas.height/2);
+
+    canvas.style.display = "block";
+  }, 3000);
+});
+
+openLinkBtn.addEventListener('click', () => {
+  if(lastDecoded) window.open(lastDecoded,'_blank');
 });
 </script>
 </body>
