@@ -21,6 +21,7 @@ small{display:block;margin-top:8px;color:#99a3b5;text-align:center}
 #crop-modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:none;justify-content:center;align-items:center;z-index:9999;flex-direction:column}
 #crop-image{max-width:90%;max-height:70%}
 #crop-confirm{position:absolute;top:16px;left:16px;font-size:28px;color:#0f0;background:rgba(0,0,0,0.4);border:none;border-radius:50%;width:40px;height:40px;cursor:pointer;display:flex;justify-content:center;align-items:center}
+canvas{display:none}
 </style>
 </head>
 <body>
@@ -39,10 +40,12 @@ small{display:block;margin-top:8px;color:#99a3b5;text-align:center}
 <button id="copy-text" class="tiny">کپی متن</button>
 <button id="show-raw" class="tiny">نمایش خام</button>
 </div>
-<small>در صورت مشکل، کنسول مرورگر را باز کنید</small>
+<small>در صورت مشکل، کنسول مرورگر را بررسی کنید</small>
 <div id="crop-modal">
 <img id="crop-image"/>
 <button id="crop-confirm">✔️</button>
+</div>
+<canvas id="hidden-canvas"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.12/minified/html5-qrcode.min.js"></script>
@@ -60,7 +63,7 @@ const actionsArea=document.getElementById('actions-area');
 const openLinkBtn=document.getElementById('open-link');
 const copyBtn=document.getElementById('copy-text');
 const showRawBtn=document.getElementById('show-raw');
-const hiddenCanvas=document.createElement('canvas');
+const hiddenCanvas=document.getElementById('hidden-canvas');
 const cropModal=document.getElementById('crop-modal');
 const cropImage=document.getElementById('crop-image');
 const cropConfirm=document.getElementById('crop-confirm');
@@ -81,7 +84,7 @@ function ensureQr(){if(html5QrCode)return html5QrCode;html5QrCode=new Html5Qrcod
 startBtn.onclick=async()=>{
 try{
 const inst=ensureQr();
-await inst.start({facingMode:"environment"},{fps:10,qrbox:{width:300,height:300}}, msg=>setResult(msg.data||msg));
+await inst.start({facingMode:"environment"},{fps:10,qrbox:{width:300,height:300}}, msg=>setResult(msg.decodedText||msg));
 setResult('دوربین فعال شد — منتظر QR ...');
 }catch(e){setResult('دوربین فعال نشد: '+(e.message||e),true);}
 };
