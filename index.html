@@ -3,89 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Scanner — گالری با نتیجه عکس</title>
+<title>QR Scanner</title>
 <style>
-body {
-  font-family: sans-serif;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  background: #0b1220;
-  color: #fff;
-}
-h1 { margin-bottom: 20px; text-align:center; }
-#qr-file { margin-bottom: 20px; }
-#result-canvas { border: 2px solid #fff; border-radius: 8px; max-width:100%; display:none; margin-top:20px; }
-#open-link { margin-top:10px; display:none; padding:10px 20px; font-weight:bold; cursor:pointer; background:#fff; color:#333; border:none; border-radius:6px; }
+  body {
+    font-family: sans-serif;
+    text-align: center;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 40px;
+  }
+  input {
+    margin-top: 20px;
+  }
+  #result {
+    margin-top: 30px;
+    padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    word-break: break-word;
+  }
 </style>
 </head>
 <body>
-<h1>QR Scanner — گالری</h1>
-<input type="file" id="qr-file" accept="image/*">
-<button id="open-link">باز کردن در مرورگر</button>
-<canvas id="result-canvas"></canvas>
+  <h1>📷 اسکن QR از گالری</h1>
+  <input type="file" id="fileInput" accept="image/*">
+  <div id="result">نتیجه در اینجا نمایش داده می‌شود</div>
 
-<script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script>
-const fileInput = document.getElementById('qr-file');
-const canvas = document.getElementById('result-canvas');
-const ctx = canvas.getContext('2d');
-const openLinkBtn = document.getElementById('open-link');
-let lastDecoded = null;
+const input = document.getElementById('fileInput');
+const result = document.getElementById('result');
 
-fileInput.addEventListener('change', async (ev) => {
-  const file = ev.target.files[0];
+input.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
   if (!file) return;
-
-  const dataUrl = await new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload = e => res(e.target.result);
-    reader.onerror = e => rej(e);
-    reader.readAsDataURL(file);
-  });
-
-  const img = await new Promise((res, rej) => {
-    const i = new Image();
-    i.onload = () => res(i);
-    i.onerror = e => rej(e);
-    i.src = dataUrl;
-  });
-
-  canvas.width = img.naturalWidth;
-  canvas.height = img.naturalHeight;
-  ctx.drawImage(img, 0, 0);
-
-  const imageData = ctx.getImageData(0,0,canvas.width,canvas.height);
-  const code = jsQR(imageData.data, canvas.width, canvas.height);
-  lastDecoded = code && code.data ? code.data : null;
-
-  // تعیین اینکه لینک نمایش داده شود یا نه
-  if(lastDecoded && /^https?:\/\//i.test(lastDecoded)){
-    openLinkBtn.style.display = "inline-block";
-  } else {
-    openLinkBtn.style.display = "none";
+  result.textContent = "در حال خواندن...";
+  try {
+    const qr = new Html5Qrcode("result");
+    const decoded = await qr.scanFile(file, true);
+    qr.clear();
+    result.textContent = "🔍 نتیجه: " + decoded;
+  } catch (err) {
+    result.textContent = "QR یافت نشد یا تصویر معتبر نیست.";
   }
-
-  // 3 ثانیه صبر قبل از نمایش نتیجه
-  setTimeout(() => {
-    // کشیدن تصویر نهایی
-    ctx.drawImage(img,0,0);
-
-    // اضافه کردن متن وسط تصویر
-    const fontSize = Math.floor(canvas.height/12);
-    ctx.fillStyle = "rgba(0,0,0,0.5)";
-    ctx.font = fontSize + "px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("rdnsparham-rgb.github.io/QR-Scanner", canvas.width/2, canvas.height/2);
-
-    canvas.style.display = "block";
-  }, 3000);
-});
-
-openLinkBtn.addEventListener('click', () => {
-  if(lastDecoded) window.open(lastDecoded,'_blank');
 });
 </script>
 </body>
