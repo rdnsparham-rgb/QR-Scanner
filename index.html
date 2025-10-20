@@ -3,50 +3,118 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Scanner</title>
+<title>QR Scanner — rdnsparham-rgb.github.io/QR-Scanner</title>
 <style>
   body {
     font-family: sans-serif;
     text-align: center;
     background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
-    padding: 40px;
+    margin: 0;
+    padding: 20px;
   }
-  input {
-    margin-top: 20px;
+  h1 {
+    margin-bottom: 20px;
   }
-  #result {
+  #qr-file {
+    margin: 20px 0;
+  }
+  #output {
     margin-top: 30px;
-    padding: 10px;
-    background: rgba(0,0,0,0.3);
-    border-radius: 10px;
+    display: none;
+    position: relative;
+  }
+  #output img {
+    width: 250px;
+    border-radius: 12px;
+  }
+  #output-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,255,255,0.9);
+    color: black;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 14px;
+    max-width: 90%;
     word-break: break-word;
+  }
+  #open-link {
+    margin-top: 15px;
+    display: none;
+    padding: 8px 16px;
+    background: white;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #loading {
+    display: none;
+    margin-top: 20px;
   }
 </style>
 </head>
 <body>
   <h1>📷 اسکن QR از گالری</h1>
-  <input type="file" id="fileInput" accept="image/*">
-  <div id="result">نتیجه در اینجا نمایش داده می‌شود</div>
 
-<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-<script>
-const input = document.getElementById('fileInput');
-const result = document.getElementById('result');
+  <input type="file" id="qr-file" accept="image/*">
 
-input.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  result.textContent = "در حال خواندن...";
-  try {
-    const qr = new Html5Qrcode("result");
-    const decoded = await qr.scanFile(file, true);
-    qr.clear();
-    result.textContent = "🔍 نتیجه: " + decoded;
-  } catch (err) {
-    result.textContent = "QR یافت نشد یا تصویر معتبر نیست.";
-  }
-});
-</script>
+  <div id="loading">⏳ در حال خواندن QR ...</div>
+
+  <div id="output">
+    <img id="result-image" src="https://raw.githubusercontent.com/rdnsparham-rgb/V1/refs/heads/main/InShot_20251020_093347217.png" alt="نتیجه">
+    <div id="output-text">در حال نمایش نتیجه...</div>
+  </div>
+
+  <button id="open-link">اجرای در مرورگر 🌐</button>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    const fileInput = document.getElementById('qr-file');
+    const loading = document.getElementById('loading');
+    const output = document.getElementById('output');
+    const outputText = document.getElementById('output-text');
+    const openLinkBtn = document.getElementById('open-link');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      loading.style.display = 'block';
+      output.style.display = 'none';
+      openLinkBtn.style.display = 'none';
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        try {
+          const qr = new Html5Qrcode("reader-temp");
+          const result = await qr.scanFile(file, true);
+          qr.clear();
+          
+          // بعد از ۳ ثانیه نمایش نتیجه به‌صورت عکس
+          setTimeout(() => {
+            loading.style.display = 'none';
+            output.style.display = 'inline-block';
+            outputText.innerHTML = result;
+
+            // اگر لینک بود، دکمه اجرا نمایش بده
+            if (result.startsWith("https://")) {
+              openLinkBtn.style.display = 'inline-block';
+              openLinkBtn.onclick = () => window.open(result, "_blank");
+            }
+          }, 3000);
+        } catch (err) {
+          loading.style.display = 'none';
+          alert("QR پیدا نشد یا تصویر نامعتبر است.");
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
 </body>
 </html>
