@@ -57,6 +57,9 @@
     display: none;
     margin-top: 20px;
   }
+  #reader-temp {
+    display: none; /* محل اسکن مخفی */
+  }
 </style>
 </head>
 <body>
@@ -65,6 +68,9 @@
   <input type="file" id="qr-file" accept="image/*">
 
   <div id="loading">⏳ در حال خواندن QR ...</div>
+
+  <!-- محل مخفی برای اسکن -->
+  <div id="reader-temp"></div>
 
   <div id="output">
     <img id="result-image" src="https://raw.githubusercontent.com/rdnsparham-rgb/V1/refs/heads/main/InShot_20251020_093347217.png" alt="نتیجه">
@@ -89,31 +95,27 @@
       output.style.display = 'none';
       openLinkBtn.style.display = 'none';
 
-      const reader = new FileReader();
-      reader.onload = async function() {
-        try {
-          const qr = new Html5Qrcode("reader-temp");
-          const result = await qr.scanFile(file, true);
-          qr.clear();
-          
-          // بعد از ۳ ثانیه نمایش نتیجه به‌صورت عکس
-          setTimeout(() => {
-            loading.style.display = 'none';
-            output.style.display = 'inline-block';
-            outputText.innerHTML = result;
+      const qr = new Html5Qrcode("reader-temp");
+      try {
+        const result = await qr.scanFile(file, true);
+        await qr.clear();
 
-            // اگر لینک بود، دکمه اجرا نمایش بده
-            if (result.startsWith("https://")) {
-              openLinkBtn.style.display = 'inline-block';
-              openLinkBtn.onclick = () => window.open(result, "_blank");
-            }
-          }, 3000);
-        } catch (err) {
+        // بعد از ۳ ثانیه نمایش نتیجه به‌صورت عکس
+        setTimeout(() => {
           loading.style.display = 'none';
-          alert("QR پیدا نشد یا تصویر نامعتبر است.");
-        }
-      };
-      reader.readAsDataURL(file);
+          output.style.display = 'inline-block';
+          outputText.innerHTML = result;
+
+          // اگر لینک بود، دکمه اجرا نمایش بده
+          if (result.startsWith("https://")) {
+            openLinkBtn.style.display = 'inline-block';
+            openLinkBtn.onclick = () => window.open(result, "_blank");
+          }
+        }, 3000);
+      } catch (err) {
+        loading.style.display = 'none';
+        alert("QR پیدا نشد یا تصویر نامعتبر است.");
+      }
     });
   </script>
 </body>
