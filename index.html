@@ -65,7 +65,7 @@ let lastDecoded=null;
 
 function setResultText(text,isError=false){
 lastDecoded=text;
-resultDiv.textContent=(isError?"خطا: ":"نتیجه: ") + (text===null ? '—' : String(text));
+resultDiv.textContent=(isError?"خطا: ":"جواب: ") + (text===null ? '—' : String(text));
 if(!isError && text!==null && String(text).trim()!==''){
 actionsArea.style.display='flex';
 if(/^(https?:\/\/)/i.test(String(text).trim())||/^[\w-]+\.[\w-]{2,}/.test(String(text).trim())) openLinkBtn.style.display='inline-block';
